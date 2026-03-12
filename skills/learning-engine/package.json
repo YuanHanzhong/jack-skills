@@ -1,0 +1,28 @@
+{
+  "name": "learning-engine",
+  "version": "8.0.0",
+  "type": "module",
+  "scripts": {
+    "db:init": "bun run src/cli/commands/init-db.ts",
+    "db:verify": "bun run src/cli/commands/verify-db.ts",
+    "db:migrate": "bun run src/cli/commands/migrate-db.ts",
+    "db:export": "bun run src/cli/commands/export-db.ts",
+    "db:import": "bun run src/cli/commands/import-db.ts",
+    "db:snapshot": "bun run src/cli/commands/snapshot-db.ts",
+    "db:portable-export": "bun run src/cli/commands/portable-export.ts",
+    "daemon": "bun run src/worker/daemon.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.38.0",
+    "zod": "^3.24.0",
+    "pino": "^9.6.0",
+    "dayjs": "^1.11.13",
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.8.0",
+    "drizzle-kit": "^0.30.0"
+  }
+}

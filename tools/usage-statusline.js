@@ -2,7 +2,6 @@
 // Usage StatusLine — 独立脚本，显示 Claude 5h/7d 用量百分比 + 重置时间
 // 零依赖，Bun 运行（Node.js 的 TLS 在 macOS 上有证书链问题）
 
-import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -10,9 +9,10 @@ const HOME = homedir();
 const PROJECT_ROOT = process.env.CLAUDE_PROJECT_ROOT || join(HOME, '1_learn');
 const CACHE_PATH = join(HOME, '.claude', '.usage-cache.json');
 const CREDS_PATH = join(HOME, '.claude', '.credentials.json');
-const SUCCESS_TTL = 60_000;  // 60s
-const FAILURE_TTL = 15_000;  // 15s
-const API_TIMEOUT = 5_000;   // 5s
+const SUCCESS_TTL = 300_000; // 5min（减少 API 调用频率，从 60s → 5min）
+const FAILURE_TTL = 120_000; // 2min（失败后等更久再重试，避免频繁超时）
+const LOCK_TTL    = 10_000;  // 10s 乐观锁，防止多窗口并发 fetch
+const API_TIMEOUT = 2_000;   // 2s（从 5s 降到 2s，网络慢时快速失败）
 
 // ── stdin：Claude Code 通过 stdin 传入 JSON，必须读完才能正常退出 ──
 let stdinBuf = '';
@@ -50,6 +50,29 @@ function pickCtxColor(pct) {
   if (pct < 70) return COLORS.cream;
   if (pct < 85) return COLORS.peach;
   return COLORS.berry;
+}
+
+// ── 解析 stdin 中的 token 总量和版本 ──
+function parseTokensAndVersion(stdinBuf) {
+  try {
+    const data = JSON.parse(stdinBuf);
+    const totalTokens = (data?.context_window?.total_input_tokens ?? 0) +
+                        (data?.context_window?.total_output_tokens ?? 0);
+    const version = data?.version ?? null;
+    return { totalTokens, version };
+  } catch {}
+  return { totalTokens: 0, version: null };
+}
+
+// ── 格式化 token+版本段 ──
+function formatTokensVersionSegment(totalTokens, version) {
+  const dim = '\x1b[2m';
+  const reset = RESET;
+  const parts = [];
+  if (totalTokens > 0) parts.push(`${totalTokens.toLocaleString()} tokens`);
+  if (version) parts.push(`v${version}`);
+  if (parts.length === 0) return null;
+  return `${dim}${parts.join('  ')}${reset}`;
 }
 
 // ── 解析 stdin 中的模型标识 ──
@@ -105,21 +128,7 @@ function formatRemaining(resetAt, totalLabel) {
 
 // ── 读 OAuth token ──
 function getToken() {
-  // 1. macOS Keychain
-  try {
-    const raw = execFileSync('/usr/bin/security', [
-      'find-generic-password', '-s', 'Claude Code-credentials', '-w'
-    ], { timeout: 5000, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
-    const creds = JSON.parse(raw);
-    const oauth = creds?.claudeAiOauth;
-    if (!oauth?.accessToken) return null;
-    if (oauth.expiresAt && oauth.expiresAt <= Date.now()) return null;
-    const sub = oauth.subscriptionType || '';
-    if (sub === 'api' || !sub) return null;  // API 用户无限额
-    return oauth.accessToken;
-  } catch {}
-
-  // 2. 文件降级
+  // 从文件读取（Windows 无 Keychain）
   try {
     const raw = readFileSync(CREDS_PATH, 'utf8');
     const creds = JSON.parse(raw);
@@ -134,16 +143,31 @@ function getToken() {
   return null;
 }
 
-// ── 读缓存 ──
+// ── 读缓存（含乐观锁：另一个窗口正在 fetch 时返回旧数据）──
+// 返回 { fresh: data|null, stale: data|null }
+//   fresh !== null → 缓存有效，直接用
+//   fresh === null → 缓存过期，需要 fetch；stale 保存上次数据供 lock/fallback
 function readCache() {
   try {
     const raw = readFileSync(CACHE_PATH, 'utf8');
     const cache = JSON.parse(raw);
     const age = Date.now() - (cache.timestamp || 0);
+    // 另一个窗口正在 fetch → 返回旧数据，不重复请求
+    if (cache.fetching && age < LOCK_TTL) return { fresh: cache.data ?? null, stale: cache.data };
     const ttl = cache.error ? FAILURE_TTL : SUCCESS_TTL;
-    if (age < ttl) return cache.data;
+    if (age < ttl) return { fresh: cache.data, stale: cache.data };
+    // 过期了，但保留旧数据作为 stale fallback
+    return { fresh: null, stale: cache.data };
   } catch {}
-  return null;
+  return { fresh: null, stale: null };
+}
+
+// ── 写锁（fetch 前调用，阻止其他窗口并发请求）──
+function writeLock(staleData) {
+  try {
+    mkdirSync(join(HOME, '.claude'), { recursive: true });
+    writeFileSync(CACHE_PATH, JSON.stringify({ data: staleData, fetching: true, timestamp: Date.now() }));
+  } catch {}
 }
 
 // ── 写缓存 ──
@@ -189,26 +213,28 @@ async function main() {
   // 0. 解析 stdin 中的模型和上下文窗口（每次都读，不走缓存）
   const modelName = parseModel(stdinBuf);
   const ctxPct = parseCtxWindow(stdinBuf);
+  const { totalTokens, version } = parseTokensAndVersion(stdinBuf);
 
   // 1. 尝试缓存
-  const cached = readCache();
-  if (cached) {
-    render(cached, ctxPct, modelName);
+  const { fresh, stale } = readCache();
+  if (fresh) {
+    render(fresh, ctxPct, modelName, totalTokens, version);
     return;
   }
 
   // 2. 获取 token
   const token = getToken();
   if (!token) {
-    render(null, ctxPct, modelName);
+    render(stale, ctxPct, modelName, totalTokens, version);  // 无 token 也展示旧数据
     return;
   }
 
-  // 3. 调 API
+  // 3. 写锁（保留旧数据）→ 调 API
+  writeLock(stale);
   const resp = await fetchUsage(token);
   if (!resp) {
-    writeCache(null, true);
-    render(null, ctxPct, modelName);
+    writeCache(stale, true);           // 失败时保留旧数据，不写 null
+    render(stale, ctxPct, modelName, totalTokens, version);
     return;
   }
 
@@ -221,7 +247,7 @@ async function main() {
   };
 
   writeCache(data, false);
-  render(data, ctxPct, modelName);
+  render(data, ctxPct, modelName, totalTokens, version);
 }
 
 // ── 检测终端宽度（窄屏用紧凑格式）──
@@ -241,7 +267,7 @@ function renderCompact(data, ctxPct, modelName) {
   if (parts.length > 0) console.log(parts.join('|'));
 }
 
-function render(data, ctxPct, modelName) {
+function render(data, ctxPct, modelName, totalTokens, version) {
   const cols = getTerminalCols();
 
   // 窄屏（< 60列）用紧凑无颜色格式，确保一定能显示
@@ -267,6 +293,10 @@ function render(data, ctxPct, modelName) {
     if (s5) parts.push(s5);
     if (s7) parts.push(s7);
   }
+
+  // token 总量 + 版本（合并为一段，替代 Claude Code 内置的分离显示）
+  const sTv = formatTokensVersionSegment(totalTokens, version);
+  if (sTv) parts.push(sTv);
 
   if (parts.length > 0) {
     console.log(parts.join(' | '));

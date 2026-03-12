@@ -1,0 +1,114 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "BLOCK this tool call if the file_path contains .env, credentials, secret, or token (case-insensitive). Output BLOCK reason if matched, otherwise output nothing."
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude_ai_Notion__notion-create-pages|mcp__claude_ai_Notion__notion-update-page",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before executing this Notion write, verify: Have you fetched the target database schema in this session using notion-fetch(data_source_id)? If not, you MUST fetch it first to confirm all property names exist. Do not guess column names from config.ts cache — always verify against live schema. APPROVE this call only if you have verified the schema this session, otherwise DENY with reason 'Schema not verified — fetch schema first'."
+          }
+        ]
+      },
+      {
+        "matcher": "submit_answer|confirm_concept_map|request_interruption|execute_pending_tasks|start_interview_session|submit_interview_answer|trigger_review|export_mastery_map|check_job_status|sync_notion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "submit_answer|confirm_concept_map|request_interruption|execute_pending_tasks|start_interview_session|submit_interview_answer|trigger_review|export_mastery_map|check_job_status|sync_notion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/check-memory-size.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/skills/learning-engine/tools/bun-runner.sh src/hooks/dispatcher.ts"
+          }
+        ]
+      }
+    ]
+  }
+}

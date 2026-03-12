@@ -1,0 +1,7 @@
+# Force LF line endings for all text files (prevents CRLF issues on Windows)
+* text=auto eol=lf
+
+# Ensure shell/python scripts are always LF
+*.sh text eol=lf
+*.py text eol=lf
+*.ts text eol=lf
