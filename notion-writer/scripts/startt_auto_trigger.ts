@@ -10,7 +10,7 @@
 
 import {
   STARTT_TEMPLATE_ID, LOG_PAGE_ID, DWS_DATA_SOURCE_ID, TODAY_DB_ID,
-} from "../../_shared/config.ts";
+} from "../_shared/config.ts";
 export { STARTT_TEMPLATE_ID, LOG_PAGE_ID, DWS_DATA_SOURCE_ID };
 export const TODAY_DB_DATA_SOURCE_ID = TODAY_DB_ID;
 

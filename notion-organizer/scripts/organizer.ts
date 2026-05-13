@@ -8,9 +8,9 @@
  * - 安全移動：收集屬性→move→回寫屬性，不讀頁面內容
  */
 
-import { ROOT_PAGE_ID } from "../../_shared/config.ts";
-import { resolve } from "../../_shared/schema_resolver.ts";
-import { STATUS_DONE, STATUS_ABANDONED } from "../../_shared/constants.ts";
+import { ROOT_PAGE_ID } from "../_shared/config.ts";
+import { resolve } from "../_shared/schema_resolver.ts";
+import { STATUS_DONE, STATUS_ABANDONED } from "../_shared/constants.ts";
 
 // ========== 1. 流程描述（Claude執行時參考） ==========
 

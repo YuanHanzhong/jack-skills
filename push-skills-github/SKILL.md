@@ -1,13 +1,14 @@
 ---
-name: push-jack-skills-toGithub
+name: push-skills-github
 description: >-
   将本地 .claude/skills/ 下的最新 skills 同步推送到 GitHub jack-skills 仓库。
-  触发：用户说「推送skills」「同步到GitHub」「发布skills」或直接 /push-jack-skills-toGithub。
+  触发：用户说「推送skills」「同步到GitHub」「发布skills」或直接 /push-skills-github。
 ---
 
 # Push Jack Skills to GitHub
 
-将本地 `.claude/skills/` 和 `~/.claude/tools/` 的内容同步到 `E:/github/jack-skills/` 并推送。
+将本地 `.claude/skills/` 和项目 `tools/` 的内容同步到 `~/jack-skills/` 并推送。
+路径通过 `git rev-parse` 动态获取，跨平台兼容（macOS / Windows WSL）。
 **推送前必须通过安全扫描，发现 HIGH 级别问题时阻断推送。**
 
 ## CHANGELOG.md 规范
@@ -36,8 +37,10 @@ description: >-
 遍历 `skills/` 下所有一级子目录和根文件，只排除黑名单，自动发现新 skill。
 
 ```bash
-SRC=/e/github/3_simple/.claude/skills
-DST=/e/github/jack-skills
+# 动态获取路径（跨平台兼容）
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+SRC="$PROJECT_ROOT/.claude/skills"
+DST="$HOME/jack-skills"
 EXCLUDE="node_modules|bun.lock|MIGRATION_CHECKPOINT.md"
 
 # 同步所有子目录（自动发现新 skill）
@@ -53,8 +56,8 @@ for f in "$SRC"/*.json "$SRC"/*.ts; do
   [ -f "$f" ] && cp "$f" "$DST/"
 done
 
-# 同步 ~/.claude/tools/ 脚本
-TOOLS_SRC=/c/Users/jack/.claude/tools
+# 同步项目 tools/ 脚本
+TOOLS_SRC="$PROJECT_ROOT/tools"
 TOOLS_DST="$DST/tools"
 mkdir -p "$TOOLS_DST"
 rm -rf "$TOOLS_DST"/*
@@ -78,7 +81,7 @@ done
   [3] learning-engine       v1.2  +面试陪练
   [4] notion-organizer      v1.0  初始版本
   [5] notion-writer         v1.1  +ADS分流
-  [6] push-jack-skills-toGithub  v1.0  +安全扫描
+  [6] push-skills-github  v1.0  +安全扫描
   [7] tools/                (脚本工具集)
 ══════════════════════════════════════════════════
   共 N 个 skills + tools，即将全部推送
@@ -103,7 +106,7 @@ done
 ```
 pattern: (key|token|secret|password|credential)\s*[:=]\s*['"][A-Za-z0-9_\-/+]{20,}['"]
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 检测已知 credential 前缀：
@@ -111,7 +114,7 @@ path: /e/github/jack-skills/
 ```
 pattern: (sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36,}|AKIA[A-Z0-9]{16}|Bearer\s+[A-Za-z0-9\-._~+/]{20,}|Basic\s+[A-Za-z0-9+/=]{20,})
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 检测 private key 块：
@@ -119,7 +122,7 @@ path: /e/github/jack-skills/
 ```
 pattern: -----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 #### 3b. Dangerous Functions（HIGH）
@@ -127,13 +130,13 @@ path: /e/github/jack-skills/
 ```
 pattern: \b(eval|exec|execSync|Function)\s*\(
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 ```
 pattern: require\s*\(\s*['"]child_process['"]\s*\)
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 #### 3c. Unsafe Shell Patterns（HIGH）
@@ -143,7 +146,7 @@ path: /e/github/jack-skills/
 ```
 pattern: (exec|execSync|spawn|spawnSync)\s*\(\s*`[^`]*\$\{
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 #### 3d. Sensitive Data Leakage（MEDIUM）
@@ -151,7 +154,7 @@ path: /e/github/jack-skills/
 ```
 pattern: (\.env|process\.env\.[A-Z_]{5,})\b
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 注意：`process.env` 用于读取环境变量是正常的，只标记直接硬编码 `.env` 文件路径或可疑用法。
@@ -163,7 +166,7 @@ innerHTML 赋值：
 ```
 pattern: \.innerHTML\s*=
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 SQL 字符串拼接：
@@ -171,7 +174,7 @@ SQL 字符串拼接：
 ```
 pattern: (SELECT|INSERT|UPDATE|DELETE)\s+.*\+\s*[a-zA-Z]
 glob: *.{ts,js}
-path: /e/github/jack-skills/
+path: ~/jack-skills/
 ```
 
 ### Step 4 — 报告与判定
@@ -203,7 +206,7 @@ path: /e/github/jack-skills/
 安全扫描通过后，展示变更摘要：
 
 ```bash
-cd /e/github/jack-skills && git status && git diff --stat
+cd ~/jack-skills && git status && git diff --stat
 ```
 
 等用户确认再继续。
@@ -213,13 +216,13 @@ cd /e/github/jack-skills && git status && git diff --stat
 用户确认后执行：
 
 ```bash
-cd /e/github/jack-skills && git add -A && git commit -m "<描述变更>"
+cd ~/jack-skills && git add -A && git commit -m "<描述变更>"
 ```
 
 提交后自动打 tag 标记此次推送版本：
 
 ```bash
-cd /e/github/jack-skills
+cd ~/jack-skills
 TAG="skills-v$(date +%Y%m%d)-1"
 # 如果同日已有 tag，递增序号
 while git tag -l "$TAG" | grep -q .; do

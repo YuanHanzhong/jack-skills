@@ -6,8 +6,8 @@
  *   - Bottom: source info + stats
  */
 
-import { resolve } from "../../_shared/schema_resolver.ts";
-import { STATUS_IN_PROGRESS, STATUS_MAP, statusToEmoji } from "../../_shared/constants.ts";
+import { resolve } from "../_shared/schema_resolver.ts";
+import { STATUS_IN_PROGRESS, STATUS_MAP, statusToEmoji } from "../_shared/constants.ts";
 
 // ── Notion Markdown helpers ─────────────────────────────────────────────────
 

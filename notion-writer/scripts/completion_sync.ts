@@ -13,11 +13,11 @@
  */
 
 import { join } from "node:path";
-import { SESSION_DIR } from "../../_shared/paths.ts";
-import { resolve } from "../../_shared/schema_resolver.ts";
+import { SESSION_DIR } from "../_shared/paths.ts";
+import { resolve } from "../_shared/schema_resolver.ts";
 
-import { ADS_DATA_SOURCE_ID, DWS_DATA_SOURCE_ID } from "../../_shared/config.ts";
-import { STATUS_DONE, STATUS_FAILED, STATUS_IN_PROGRESS } from "../../_shared/constants.ts";
+import { ADS_DATA_SOURCE_ID, DWS_DATA_SOURCE_ID } from "../_shared/config.ts";
+import { STATUS_DONE, STATUS_FAILED, STATUS_IN_PROGRESS } from "../_shared/constants.ts";
 export const ADS_DS = ADS_DATA_SOURCE_ID;
 export const DWS_DS = DWS_DATA_SOURCE_ID;
 export { STATUS_DONE, STATUS_FAILED, STATUS_IN_PROGRESS };

@@ -9,7 +9,7 @@
  *   ADS (深入掌握·随时复现): Target 85%+, strict exam
  */
 
-import { STATUS_MAP, statusToEmoji } from "../../_shared/constants.ts";
+import { STATUS_MAP, statusToEmoji } from "../_shared/constants.ts";
 
 // ── Layer definitions ───────────────────────────────────────────────────────
 

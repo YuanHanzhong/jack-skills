@@ -1,0 +1,131 @@
+{
+  "version": "1.0.0",
+  "auditors": [
+    {
+      "id": "ods-protection",
+      "name": "ODS 保护",
+      "ruleFile": "00_DIM/rules/分层规则.md",
+      "module": "./auditors/ods-protection.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "layer-flow",
+      "name": "跳层检测",
+      "ruleFile": "00_DIM/rules/分层规则.md",
+      "module": "./auditors/layer-flow.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "naming-compliance",
+      "name": "命名合规",
+      "ruleFile": "00_DIM/rules/会话记录规范.md",
+      "module": "./auditors/naming-compliance.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "session-structure",
+      "name": "会话结构",
+      "ruleFile": "00_DIM/rules/会话记录规范.md",
+      "module": "./auditors/session-structure.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "document-format",
+      "name": "文档写法",
+      "ruleFile": "00_DIM/rules/文档写法规范.md",
+      "module": "./auditors/document-format.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "history-format-debt",
+      "name": "历史格式债",
+      "ruleFile": "00_DIM/rules/文档写法规范.md",
+      "module": "./auditors/history-format-debt.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "skill-structure",
+      "name": "Skill 结构",
+      "ruleFile": "00_DIM/rules/Skill步骤类型标准.md",
+      "module": "./auditors/skill-structure.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "whitelist-consistency",
+      "name": "白名单一致性",
+      "ruleFile": "00_DIM/rules/命令白名单.md",
+      "module": "./auditors/whitelist-consistency.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "branch-cleanup",
+      "name": "分支清理",
+      "ruleFile": "00_DIM/rules/确认规则.md",
+      "module": "./auditors/branch-cleanup.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "flashcard-overdue",
+      "name": "闪卡过期",
+      "ruleFile": "00_DIM/rules/闪卡机制.md",
+      "module": "./auditors/flashcard-overdue.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "secret-detection",
+      "name": "密钥安全",
+      "ruleFile": "00_DIM/rules/密钥安全规范.md",
+      "module": "./auditors/secret-detection.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "index-freshness",
+      "name": "索引时效",
+      "ruleFile": "00_DIM/rules/分层规则.md",
+      "module": "./auditors/index-freshness.js",
+      "type": "automated",
+      "quick": false
+    },
+    {
+      "id": "sensitive-file",
+      "name": "敏感文件",
+      "ruleFile": "00_DIM/rules/系统级文件操作规范.md",
+      "module": "./auditors/sensitive-file.js",
+      "type": "automated",
+      "quick": true
+    },
+    {
+      "id": "rule-execution-priority",
+      "name": "规则执行层级",
+      "ruleFile": "00_DIM/rules/规则执行层级规范.md",
+      "module": "./auditors/rule-execution-priority.js",
+      "type": "automated",
+      "quick": true
+    }
+  ],
+  "checklists": [
+    {
+      "id": "execution-mode",
+      "name": "执行模式约束",
+      "ruleFile": "00_DIM/rules/执行模式规范.md",
+      "items": ["是否仅在用户请求时进入计划模式？", "是否遵循范围约束原则？"]
+    },
+    {
+      "id": "planning-mode",
+      "name": "规划模式",
+      "ruleFile": "00_DIM/rules/规划模式规范.md",
+      "items": ["计划文件是否已清理？"]
+    }
+  ]
+}

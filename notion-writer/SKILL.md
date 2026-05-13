@@ -1,10 +1,11 @@
 ---
 name: notion-writer
 description: >-
-  Notion统一写入路由器，按用户意图自动分流到ADS或DWS。
+  Notion统一写入路由器，按用户意图自动分流到ADS或DWS。必须触发场景：①用户消息含notion.so URL（任何形式）②用户说"Notion"+"看/读/查/打开/这个页面"等查看意图③用户说"Notion"+"写/存/记/归档/建"等写入意图。
   ADS路径触发词：「新需求」「有个需求」「提需求」「建个档」「维护文档」「扫描ADS」。
   DWS路径触发词：「归档」「沉淀」「📦」「存入Notion」「记录到DWS」。
-  自动触发：强肯定语气或对话超5轮有新认知→DWS归档。
+  URL路径：消息含notion.so链接→自动提取UUID→判断读/写意图→路由执行。
+  候选触发：强肯定语气或对话超5轮有新认知→只提示可沉淀或等待明确保存指令，不静默归档。
   不触发：闪卡/测试→learning-engine；目录整理→notion-organizer。
 ---
 
@@ -19,22 +20,80 @@ description: >-
 ```
 用户消息
   ↓
+含 notion.so URL？ ──→ 🅄 URL路径（自动提取UUID→判断意图→读/写路由）
+  ↓ 否
+含「Notion」+查看意图（看/读/查/打开/这个页面/帮我看）？ ──→ 🅄 URL路径·fetch模式
+  ↓ 否
 含「需求」「ADS」「建档」「维护文档」？ ──→ 🅰️ ADS路径（需求文档）
   ↓ 否
 含「归档」「沉淀」「📦」「存Notion」「DWS」？ ──→ 🅱️ DWS路径（对话归档）
   ↓ 否
 含「扫描ADS」「看看看板」「查一下ADS」「To-Do改了」？ ──→ 🅰️ ADS路径·Phase 0.5扫描
   ↓ 否
-自动触发（强肯定/超5轮有新认知）？ ──→ 🅱️ DWS路径（静默归档）
+自动触发（强肯定/超5轮有新认知）？ ──→ 候选沉淀（先最小回复；不自动查重/写入）
   ↓ 否
-新对话+用户有具体需求/想法 ──→ 🅰️ ADS路径（第一轮建骨架）
+新对话+用户有具体需求/想法 ──→ 先对话澄清；只有明确建档/ADS/维护文档才创建骨架
 ```
+
+> 📌 **【URL路径·CRITICAL】** notion.so URL → 立即提取UUID，**禁止web_fetch** → 必须用 `Notion:notion-fetch(id="UUID")`
 
 > 📌 **【冲突解决·CRITICAL】** 消息同时含「ADS」+任何Notion写入词 → 100%走🅰️ADS路径
 
 > 📌 **【排除条件】** initialization就绪卡输出后的肯定回复 → 不触发自动归档
 
 > 📌 **数据库UUID集中管理** — 所有UUID定义见 `_shared/config.ts`（单一来源），本技能引用同一组ID
+
+---
+
+## 一点五、🅄 URL路径（Notion链接自动处理）
+
+### UUID提取规则
+
+```python
+# notion.so URL格式变体：
+# https://www.notion.so/PageTitle-{32位hex}
+# https://www.notion.so/{32位hex}
+# https://www.notion.so/{标准UUID带横杠}
+
+import re
+def extract_uuid(url: str) -> str:
+    m = re.search(r'([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})', url, re.I)
+    if m:
+        raw = m.group(1).replace('-', '')
+        return f"{raw[0:8]}-{raw[8:12]}-{raw[12:16]}-{raw[16:20]}-{raw[20:32]}"
+    return None
+```
+
+### 意图→操作路由
+
+```
+URL + 写/存/归档/记录意图 ──→ 写入该页面（update-page）
+URL + 读/看/查/打开意图   ──→ fetch → 输出摘要
+URL + 无明确意图          ──→ fetch → 识别类型 → 告知内容+询问下一步
+URL + 新建子页意图        ──→ create-pages(parent=page_id)
+```
+
+### 执行步骤
+
+```python
+# 1: 提取UUID
+uuid = extract_uuid(url)
+
+# 2: fetch页面
+page = Notion:notion-fetch(id=uuid)
+
+# 3: 判断类型
+# collection → 数据库，可写新记录 / 搜索
+# page       → 普通页面，可读取 / 追加
+
+# 4: 按意图执行
+# 读  → 输出标题/状态/核心内容摘要
+# 写  → 路由到ADS/DWS逻辑
+# 无  → 摘要 + 询问「读 / 追加 / 归档？」
+```
+
+> ⛔ **【URL禁令·CRITICAL】** 禁止对 notion.so URL 使用 web_fetch → 100%报 PERMISSIONS_ERROR
+> 🔧 UUID提取失败 → 告知用户URL格式异常，请粘贴完整链接
 
 ---
 
@@ -51,10 +110,10 @@ description: >-
 
 ### 触发细分
 
-> 🔴 **【最高优先级·立刻创建文档】** 「新需求」「有个需求」「我想要」→ 当场提取关键词，当场创建，不问不等
+> 🔴 **【明确建档·立刻创建文档】** 「新需求」「有个需求」「建个档」「写ADS」→ 当场提取关键词并创建；普通「我想要」先澄清，不自动建档
 > 🟢 **【主动触发】** 「ADS文档」「新建ADS」「建个档」「写ADS」「写到DWS」「实施文档」
 > 🟠 **【扫描触发】** 「扫描ADS」「看看看板」「列出任务」「我改了」「To-Do改了」→ Phase 0.5属性扫描
-> 🟡 **【自动触发·对话中】** 💡新发现 / 新结论 / 对话>3轮有实质进展 → 追加进展+断点
+> 🟡 **【候选触发·对话中】** 💡新发现 / 新结论 / 对话>3轮有实质进展 → 先判断是否需要落盘；未形成阶段结论或恢复点时，只继续最小回复
 
 ### 执行流程
 
@@ -66,7 +125,7 @@ ads_db = notion_fetch(ADS_DATA_SOURCE_ID)  # ✅轻量·Schema级
 ads_schema = parse_schema_from_state(ads_db["schema"])
 status_options = get_option_names(ads_schema, "状态")
 
-# Phase 0.5: 智能扫描+To-Do检测（新对话必做）
+# Phase 0.5: 智能扫描+To-Do检测（进入ADS写入路径时执行）
 # 0.5a: ADS属性扫描（只读属性·不读内容）
 in_progress = notion_search(query="进行中", data_source_url=f"collection://{ADS_DATA_SOURCE_ID}")
 # 0.5b: 指挥台To-Do检测（有相关文档时）
@@ -76,7 +135,7 @@ in_progress = notion_search(query="进行中", data_source_url=f"collection://{A
 for db_id in [ADS_DATA_SOURCE_ID, DWD_DATA_SOURCE_ID, DWS_DATA_SOURCE_ID]:
     results = notion_search(query=关键词, data_source_url=f"collection://{db_id}")
 
-# Phase 1: 分类+创建/定位文档
+# Phase 1: 分类+创建/定位文档（仅当用户明确建档/写入/维护，或已经形成必须保存的阶段结论）
 timestamp = bash("TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M'")
 view("references/ads-template.md")  # 每次新建必须读模板
 classification = classify_requirement(用户消息, 上下文)
@@ -133,7 +192,7 @@ notion_create_pages(parent={"data_source_id": target_db}, ...)
 ### 触发细分
 
 > 🟢 **【主动触发】** 「📦」「归档」「存Notion」「记录到DWS」「写入Notion」「沉淀」
-> 🟡 **【自动触发】** 强肯定语气 / 对话超5轮有新认知
+> 🟡 **【候选触发】** 强肯定语气 / 对话超5轮有新认知：只提示可沉淀或等待用户明确要求，不静默跑查重、时间戳和写入
 
 ### 执行流程（10步·顺序不可跳过）
 
@@ -255,15 +314,15 @@ Notion:notion-update-page(command="insert_content_after", page_id="UUID", ...)
 
 ## 五、通用铁律（三技能共享·只写一次）
 
-> ⛔ **【时间戳】** `TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M'` 获取UTC+8，禁止估算
-> ⛔ **【写前查重】** 新建任何文档前必须先search ADS，有进行中任务必须问「追加还是新建」
+> ⛔ **【时间戳】** 只有即将真实写入时才调用 `TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M'` 获取UTC+8，禁止为普通回复取时间
+> ⛔ **【写前查重】** 新建任何文档前必须先search ADS；但未进入写入流程时不要为了聊天续轮而查重
 > ⛔ **【Notion禁令】** 禁止web_fetch访问notion.so URL
 > ⛔ **【目录写入禁令·CRITICAL】** 禁止在根目录（Notion workspace根）或 claudeMem 主目录下直接创建任何页面；所有新建内容必须写入已存在的数据库（ADS/DWS/DWD/ODS）；无对应数据库→先告知用户，等确认后才创建
 > ⛔ **【持久化】** 写入/mnt/skills/user/只在当前session有效，必须present_files
 > ⛔ **【无代码=未完成】** 优化/重写必须产出scripts/*.ts
-> ⛔ **【输出顺序】** 正文→推荐下一步→📌目的→静默写入→✅/❌一行
+> ⛔ **【输出顺序】** 写入任务才使用：正文→推荐下一步→📌目的→静默写入→✅/❌一行；普通聊天不套此格式
 > 🔧 **【原话优先】** 80%用用户原词，20%从更高视角补充
-> 🔧 **【先回文字再操作Notion】** 不让焊忠等
+> 🔧 **【先回文字再操作Notion】** 不让焊忠等；若没有必要写入，就只回文字
 
 ---
 

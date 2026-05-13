@@ -13,8 +13,8 @@
  */
 
 import { join } from "node:path";
-import { PENDING_LOGS_DIR } from "../../_shared/paths.ts";
-import { TODAY_DB_ID } from "../../_shared/config.ts";
+import { PENDING_LOGS_DIR } from "../_shared/paths.ts";
+import { TODAY_DB_ID } from "../_shared/config.ts";
 
 
 // Instruction file path

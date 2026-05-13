@@ -9,12 +9,12 @@
  * SIMPLIFIED: Removed concurrent.futures parallel fan_out. Sequential dispatch only.
  */
 
-import { resolve } from "../../_shared/schema_resolver.ts";
-import { STATUS_IN_PROGRESS, STATUS_DONE } from "../../_shared/constants.ts";
+import { resolve } from "../_shared/schema_resolver.ts";
+import { STATUS_IN_PROGRESS, STATUS_DONE } from "../_shared/constants.ts";
 import {
   ADS_DATA_SOURCE_ID, DWS_DATA_SOURCE_ID,
   ROOT_PAGE_ID, METADATA_PAGE_ID, STARTT_TEMPLATE_ID, MONTHLY_LOG_ID, RULE_LIB_ID,
-} from "../../_shared/config.ts";
+} from "../_shared/config.ts";
 
 // ── Agent role constants (color-coded) ──────────────────────────
 export const ROLE_READER = "🔵 reader";

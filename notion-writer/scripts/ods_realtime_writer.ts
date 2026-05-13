@@ -11,9 +11,9 @@
  */
 
 import { join } from "node:path";
-import { TEMP_BASE } from "../../_shared/paths.ts";
-import { resolve } from "../../_shared/schema_resolver.ts";
-import { STATUS_RESOLVED, STATUS_UNRESOLVED } from "../../_shared/constants.ts";
+import { TEMP_BASE } from "../_shared/paths.ts";
+import { resolve } from "../_shared/schema_resolver.ts";
+import { STATUS_RESOLVED, STATUS_UNRESOLVED } from "../_shared/constants.ts";
 
 // Local buffer (fallback when Notion write fails)
 export const ODS_BUFFER_PATH = join(TEMP_BASE, "ods_realtime_buffer.jsonl");

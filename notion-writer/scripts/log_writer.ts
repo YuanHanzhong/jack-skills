@@ -8,8 +8,8 @@
  */
 
 import { join } from "node:path";
-import { TEMP_BASE } from "../../_shared/paths.ts";
-import { TODAY_DB_ID, LOG_PAGE_ID } from "../../_shared/config.ts";
+import { TEMP_BASE } from "../_shared/paths.ts";
+import { TODAY_DB_ID, LOG_PAGE_ID } from "../_shared/config.ts";
 
 export const BUFFER_PATH = join(TEMP_BASE, "timeline_buffer.jsonl");
 export const TODAY_DB_DATA_SOURCE_ID = TODAY_DB_ID;

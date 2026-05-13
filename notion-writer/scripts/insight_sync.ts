@@ -8,7 +8,7 @@
  */
 
 import { join } from "node:path";
-import { TEMP_BASE } from "../../_shared/paths.ts";
+import { TEMP_BASE } from "../_shared/paths.ts";
 
 export const BUFFER_PATH = join(TEMP_BASE, "timeline_buffer.jsonl");
 

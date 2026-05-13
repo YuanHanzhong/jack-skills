@@ -12,8 +12,8 @@
 
 import {
   ODS_DATA_SOURCE_ID, DWD_DATA_SOURCE_ID, ADS_DATA_SOURCE_ID,
-} from "../../_shared/config.ts";
-import { STATUS_MAP, STATUS_IN_PROGRESS } from "../../_shared/constants.ts";
+} from "../_shared/config.ts";
+import { STATUS_MAP, STATUS_IN_PROGRESS } from "../_shared/constants.ts";
 
 // ── ODS Layer ───────────────────────────────────────────────────────────────
 

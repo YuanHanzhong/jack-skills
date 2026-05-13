@@ -13,7 +13,7 @@ import {
   ODS_DATA_SOURCE_ID,
   DWD_DATA_SOURCE_ID,
   ADS_DATA_SOURCE_ID,
-} from "../../_shared/config.ts";
+} from "../_shared/config.ts";
 
 // ── URL normalization ───────────────────────────────────────────────────────
 
